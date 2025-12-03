@@ -2,9 +2,11 @@
 import os
 import re
 import random
-from random import shuffle
+from random import shuffle, sample
 from functools import partial
 
+from PIL import Image
+from matplotlib import pyplot as plt
 import albumentations as A
 import numpy as np
 import timm
@@ -19,6 +21,7 @@ from torch.optim import AdamW
 from transformers import AutoModel, AutoTokenizer
 
 from .dataset import MultimodalDataset, get_transforms, collate_fn
+from .constants import DATA_PATH
 
 
 def seed_everything(seed: int):
@@ -226,3 +229,34 @@ def validate(model, val_loader, device, metric):
             _ = metric(preds=preds, target=targets)
 
     return metric.compute().cpu().numpy()
+
+
+def plot_sample_images(dish_ids):
+
+    image_paths = [f'{DATA_PATH}images/{d}/rgb.png' for d in dish_ids]
+
+    _, axs = plt.subplots(3, 3, figsize=(5, 5))
+    axs = axs.flatten()
+    image_paths_sample = sample(image_paths, 9)
+    imgs = [Image.open(img_path).convert('RGB') for img_path in image_paths_sample]
+    for img, ax in zip(imgs, axs):
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.imshow(img)
+
+
+def plot_images_flatten(dish_ids, sample_flg=True, sample_count=5, figsize=(8, 8),):
+
+    image_paths = [f'{DATA_PATH}images/{d}/rgb.png' for d in dish_ids]
+    if sample_flg:
+        _, axs = plt.subplots(1, sample_count, figsize=figsize)
+        image_paths_sample = sample(image_paths, sample_count)
+    else:
+        _, axs = plt.subplots(1, len(image_paths), figsize=figsize)
+        image_paths_sample = image_paths
+    axs = axs.flatten()    
+    imgs = [Image.open(img_path).convert('RGB') for img_path in image_paths_sample]
+    for img, ax in zip(imgs, axs):
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.imshow(img)

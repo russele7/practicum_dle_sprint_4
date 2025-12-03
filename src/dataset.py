@@ -61,12 +61,14 @@ class MultimodalDataset(Dataset):
             # "attention_mask": tokenized_input["attention_mask"],
             "text": text,
             "total_mass": total_mass,
+            "dish_id": dish_id,
         }
-    
+
+
 def get_ingredients_idx(raw_text):
     return [int(t[12:]) for t in raw_text.split(';')]
 
-    
+
 def text_interfusion(text):
     text_list = text.split(", ")
     random.shuffle(text_list)
@@ -81,6 +83,7 @@ def texts_interfusion(texts):
 
 
 def collate_fn(batch, tokenizer, mode):
+    dish_ids = [item["dish_id"] for item in batch]
     texts = [item["text"] for item in batch]
 
     if mode == 'train':
@@ -102,6 +105,7 @@ def collate_fn(batch, tokenizer, mode):
         "input_ids": tokenized_input["input_ids"],
         "attention_mask": tokenized_input["attention_mask"],
         "total_mass": total_masses,
+        "dish_id": dish_ids,
     }
 
 
