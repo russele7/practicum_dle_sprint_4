@@ -1,5 +1,4 @@
 
-import re
 import random
 
 import pandas as pd
@@ -37,7 +36,7 @@ class MultimodalDataset(Dataset):
 
     def __getitem__(self, idx):
 
-        # ingredients_idx = 
+        # ingredients_idx =
         ingredients_idx = get_ingredients_idx(self.df.loc[idx, "ingredients"])
 
         text = ', '.join([self.dict_ingredients[idx]
@@ -72,7 +71,7 @@ def get_ingredients_idx(raw_text):
 def text_interfusion(text):
     text_list = text.split(", ")
     random.shuffle(text_list)
-    return ", ".join(text_list) 
+    return ", ".join(text_list)
 
 
 def texts_interfusion(texts):
@@ -93,7 +92,7 @@ def collate_fn(batch, tokenizer, mode):
 
     images = torch.stack([item["image"] for item in batch])
 
-    targets = torch.LongTensor([item["target"] for item in batch])    
+    targets = torch.LongTensor([item["target"] for item in batch])
 
     tokenized_input = tokenizer(texts,
                                 return_tensors="pt",
@@ -109,7 +108,6 @@ def collate_fn(batch, tokenizer, mode):
     }
 
 
-
 def get_transforms(config, mode="train"):
     cfg = timm.get_pretrained_cfg(config.IMAGE_MODEL_NAME)
 
@@ -118,23 +116,19 @@ def get_transforms(config, mode="train"):
             [
                 A.SmallestMaxSize(
                     max_size=max(cfg.input_size[1], cfg.input_size[2]), p=1.0),
-                A.RandomCrop(
-                    height=cfg.input_size[1], width=cfg.input_size[2], p=1.0),
                 A.Affine(scale=(0.8, 1.2),
-                        rotate=(-15, 15),
-                        translate_percent=(-0.1, 0.1),
-                        shear=(-10, 10),
-                        fill=0,
-                        p=0.8),
-                A.CoarseDropout(num_holes_range=(2, 8),
-                                hole_height_range=(int(0.07 * cfg.input_size[1]),
-                                                int(0.15 * cfg.input_size[1])),
-                                hole_width_range=(int(0.1 * cfg.input_size[2]),
-                                                int(0.15 * cfg.input_size[2])),
-                                fill=0,
-                                p=0.5),
-                A.ColorJitter(
-                    brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.7),
+                         rotate=(-45, 45),
+                         translate_percent=(-0.1, 0.1),
+                         shear=(-10, 10),
+                         fill=0,
+                         p=0.8),
+                A.ColorJitter(brightness=0.2,
+                              contrast=0.2,
+                              saturation=0.2,
+                              hue=0.1,
+                              p=0.7),
+                A.GaussianBlur(blur_limit=(3, 10), p=0.7),
+                A.SaltAndPepper(amount=(0.01, 0.06), p=0.7),
                 A.Normalize(mean=cfg.mean, std=cfg.std),
                 A.ToTensorV2(p=1.0)
             ],

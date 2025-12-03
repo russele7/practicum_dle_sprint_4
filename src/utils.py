@@ -2,17 +2,14 @@
 import os
 import re
 import random
-from random import shuffle, sample
+from random import sample
 from functools import partial
 
 from PIL import Image
 from matplotlib import pyplot as plt
-import albumentations as A
 import numpy as np
 import timm
-from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
-# from src.constants import DATA_PATH
 from tqdm import tqdm
 import torchmetrics
 import torch
@@ -53,7 +50,6 @@ def set_requires_grad(module, unfreeze_pattern="", verbose=False):
 class MultimodalModel(nn.Module):
     def __init__(self, config,):
         super().__init__()
-        # self.hidden_state = emb_dim
         self.text_model = AutoModel.from_pretrained(config.TEXT_MODEL_NAME)
         self.image_model = timm.create_model(
             config.IMAGE_MODEL_NAME,
@@ -86,12 +82,9 @@ class MultimodalModel(nn.Module):
         image_features = self.image_model(image_input)
         mass_features = torch.tensor(mass_input).unsqueeze(1)
 
-        # print(text_features.shape, image_features.shape, mass_features.shape)
         multi_output = torch.cat(
             [text_features, image_features, mass_features], dim=1)
-        # print(multi_output.shape)
         output = self.regressor(multi_output)
-        # print(output.shape)
         return output
 
 
@@ -103,9 +96,11 @@ def train(config, device):
     tokenizer = AutoTokenizer.from_pretrained(config.TEXT_MODEL_NAME)
 
     set_requires_grad(model.text_model,
-                      unfreeze_pattern=config.TEXT_MODEL_UNFREEZE, verbose=True)
+                      unfreeze_pattern=config.TEXT_MODEL_UNFREEZE,
+                      verbose=True)
     set_requires_grad(model.image_model,
-                      unfreeze_pattern=config.IMAGE_MODEL_UNFREEZE, verbose=True)
+                      unfreeze_pattern=config.IMAGE_MODEL_UNFREEZE,
+                      verbose=True)
 
     # Оптимизатор с разными LR
     optimizer = AdamW([{
@@ -144,7 +139,6 @@ def train(config, device):
 
     mae_metric_train = torchmetrics.MeanAbsoluteError().to(device)
     mae_metric_val = torchmetrics.MeanAbsoluteError().to(device)
-    # best_mae_train = 0.0
     best_mae_val = 0.0
 
     print("training started")
@@ -154,23 +148,15 @@ def train(config, device):
         print(f'epoch {epoch}')
         for batch in tqdm(train_loader):
             # Подготовка данных
-            # inputs = {
-            #     'input_ids': batch['input_ids'].to(device),
-            #     'attention_mask': batch['attention_mask'].to(device),
-            #     'image': batch['image'].to(device),
-            #     'total_mass': batch['total_mass'].to(device)
-            # }
             inputs = {
-                'text_input': {'input_ids': batch['input_ids'].to(device),
-                               'attention_mask': batch['attention_mask'].to(device)},
+                'text_input': {
+                    'input_ids': batch['input_ids'].to(device),
+                    'attention_mask': batch['attention_mask'].to(device)
+                },
                 'image_input': batch['image'].to(device),
                 'mass_input': batch['total_mass'].to(device)
             }
-            # labels = batch['label'].to(device)
             targets = batch['target'].to(device)
-
-            # forward(self, text_input, image_input, mass_input)
-
 
             # Forward
             optimizer.zero_grad()
@@ -210,15 +196,11 @@ def validate(model, val_loader, device, metric):
     with torch.no_grad():
         for batch in tqdm(val_loader):
 
-            # inputs = {
-            #     'input_ids': batch['input_ids'].to(device),
-            #     'attention_mask': batch['attention_mask'].to(device),
-            #     'image': batch['image'].to(device),
-            #     'total_mass': batch['total_mass'].to(device)
-            # }
             inputs = {
-                'text_input': {'input_ids': batch['input_ids'].to(device),
-                               'attention_mask': batch['attention_mask'].to(device)},
+                'text_input': {
+                    'input_ids': batch['input_ids'].to(device),
+                    'attention_mask': batch['attention_mask'].to(device)
+                },
                 'image_input': batch['image'].to(device),
                 'mass_input': batch['total_mass'].to(device)
             }
@@ -238,14 +220,18 @@ def plot_sample_images(dish_ids):
     _, axs = plt.subplots(3, 3, figsize=(5, 5))
     axs = axs.flatten()
     image_paths_sample = sample(image_paths, 9)
-    imgs = [Image.open(img_path).convert('RGB') for img_path in image_paths_sample]
+    imgs = [Image.open(img_path).convert('RGB')
+            for img_path in image_paths_sample]
     for img, ax in zip(imgs, axs):
         ax.set_xticks([])
         ax.set_yticks([])
         ax.imshow(img)
 
 
-def plot_images_flatten(dish_ids, sample_flg=True, sample_count=5, figsize=(8, 8),):
+def plot_images_flatten(dish_ids,
+                        sample_flg=True,
+                        sample_count=5,
+                        figsize=(8, 8)):
 
     image_paths = [f'{DATA_PATH}images/{d}/rgb.png' for d in dish_ids]
     if sample_flg:
@@ -254,8 +240,9 @@ def plot_images_flatten(dish_ids, sample_flg=True, sample_count=5, figsize=(8, 8
     else:
         _, axs = plt.subplots(1, len(image_paths), figsize=figsize)
         image_paths_sample = image_paths
-    axs = axs.flatten()    
-    imgs = [Image.open(img_path).convert('RGB') for img_path in image_paths_sample]
+    axs = axs.flatten()
+    imgs = [Image.open(img_path).convert('RGB')
+            for img_path in image_paths_sample]
     for img, ax in zip(imgs, axs):
         ax.set_xticks([])
         ax.set_yticks([])
