@@ -51,6 +51,7 @@ class MultimodalModel(nn.Module):
     def __init__(self, config,):
         super().__init__()
         self.text_model = AutoModel.from_pretrained(config.TEXT_MODEL_NAME)
+
         self.image_model = timm.create_model(
             config.IMAGE_MODEL_NAME,
             pretrained=True,
@@ -93,6 +94,7 @@ def train(config, device):
 
     # Инициализация модели
     model = MultimodalModel(config).to(device)
+
     tokenizer = AutoTokenizer.from_pretrained(config.TEXT_MODEL_NAME)
 
     set_requires_grad(model.text_model,
@@ -135,11 +137,9 @@ def train(config, device):
                                                mode="test"))
 
     # инициализируем метрику
-    torchmetrics.MeanAbsoluteError()
-
     mae_metric_train = torchmetrics.MeanAbsoluteError().to(device)
     mae_metric_val = torchmetrics.MeanAbsoluteError().to(device)
-    best_mae_val = 0.0
+    best_mae_val = np.inf
 
     print("training started")
     for epoch in range(config.EPOCHS):
@@ -184,7 +184,7 @@ def train(config, device):
             f"Val MAE: {val_mae :.4f}"
         )
 
-        if val_mae > best_mae_val:
+        if val_mae < best_mae_val:
             print(f"New best model, epoch: {epoch}")
             best_mae_val = val_mae
             torch.save(model.state_dict(), config.SAVE_PATH)
